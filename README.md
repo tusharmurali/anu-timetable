@@ -2,6 +2,7 @@
 A web app that tells you when your next ANU lecture or tutorial is.
 All times are automatically shown in the timezone of your device.
 The timetable supports selecting tutorials, workshops, and labs, and has clickable Google Maps links for directions to each location displayed.
+Each upcoming activity is displayed below the calendar along with the time until its start.
 
 ## Project setup
 ```

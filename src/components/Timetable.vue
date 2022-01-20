@@ -149,7 +149,7 @@
         </v-card>
       </v-col>
 
-      <v-col xl="6" md="4" v-for="(activity, index) in activities" :key="index">
+      <v-col xl="6" md="4" v-for="(activity, index) in activities.filter(a => new Date() <= new Date(a.end))" :key="index">
         <v-card dark class="d-flex flex-column mb-4" height="100%" :color="color = colors[values.indexOf(activity.courseTitle)]">
           <v-card-text class="d-flex flex-column text-center">
             <p class="text-h4 white--text">
