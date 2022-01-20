@@ -1,28 +1,128 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
-  </div>
+  <v-app>
+    <v-app-bar
+      app
+      color="primary"
+      dark
+    >
+      <div class="d-flex align-center">
+        <v-img
+          alt="ANU Timetable Logo"
+          class="shrink mr-2"
+          contain
+          :src="require('./assets/logo.png')"
+          transition="scale-transition"
+          width="40"
+        />
+
+        <v-img
+          alt="ANU Timetable Name"
+          class="shrink mt-1 hidden-sm-and-down"
+          contain
+          min-width="100"
+          :src="require('./assets/name.png')"
+          width="200"
+        />
+      </div>
+
+      <v-spacer></v-spacer>
+
+      <v-autocomplete
+          v-model="values"
+          :items="options"
+          class="mr-2"
+          style="max-width: 650px"
+          multiple
+          chips
+          deletable-chips
+          flat
+          hide-no-data
+          hide-details
+          solo-inverted
+          label="What courses are you taking?"
+      >
+        <template v-slot:selection="data">
+          <v-chip
+              :color="colors[values.indexOf(data.item.value)]"
+              close
+              @click="data.select"
+              @click:close="remove(data.item)"
+          >
+            {{ data.item.value.split('_')[0] }}
+          </v-chip>
+        </template>
+      </v-autocomplete>
+      <v-select v-model="select" :items="sessions" style="max-width: 150px" flat hide-details solo-inverted></v-select>
+    </v-app-bar>
+
+    <v-main>
+      <Timetable :values="values"/>
+    </v-main>
+  </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import Timetable from './components/Timetable';
+import timetable from '../scraper/timetable.json';
 
 export default {
   name: 'App',
-  components: {
-    HelloWorld
-  }
-}
-</script>
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
+  components: {
+    Timetable
+  },
+
+  data: () => ({
+    timetable,
+    values: [],
+    sessions: [
+      { text: 'Semester 1', value: 'S1' },
+      { text: 'Semester 2', value: 'S2' },
+      { text: 'Summer', value: 'X1' },
+      { text: 'Autumn', value: 'X2' },
+      { text: 'Winter', value: 'X3' },
+      { text: 'Spring', value: 'X4' }
+    ],
+    select: new Date().getMonth() + 1 >= 6 && new Date().getMonth + 1 <= 10 ? 'S2' : 'S1',
+    colors: ['blue lighten-1', 'indigo', 'deep-purple', 'cyan', 'green', 'orange', 'grey darken-1'],
+  }),
+
+  mounted() {
+    if (localStorage.select) {
+      this.select = localStorage.select
+    }
+    if (localStorage.getItem('values')) {
+      try {
+        this.values = JSON.parse(localStorage.getItem('values'))
+      } catch (e) {
+        localStorage.removeItem('values')
+      }
+    }
+  },
+
+  watch: {
+    select(newSelect) {
+      localStorage.select = newSelect
+    },
+    values(newValues) {
+      localStorage.values = JSON.stringify(newValues)
+    }
+  },
+
+  computed: {
+    options () {
+      return Object.keys(timetable).filter(key => new RegExp(`_${this.select}`).test(key)).map(key => ({
+        text: key.replace(/_[a-zA-Z0-9]+/, ''),
+        value: key
+      }))
+    }
+  },
+
+  methods: {
+    remove (item) {
+      const index = this.values.indexOf(item.value)
+      if (index >= 0) this.values.splice(index, 1)
+    }
+  }
+};
+</script>

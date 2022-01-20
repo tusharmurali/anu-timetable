@@ -5,7 +5,8 @@ const fs = require('fs')
 
 const httpsAgent = new (require('https')).Agent({ rejectUnauthorized: false })
 
-const year = new Date().getFullYear()
+// change this
+const year = 2022
 
 async function scrape() {
     let data = {}
@@ -13,15 +14,20 @@ async function scrape() {
     let $ = cheerio.load(response.data)
     const cookie = response.headers['set-cookie'].join('; ')
     let __VIEWSTATE = $('#__VIEWSTATE').val()
+    let __VIEWSTATEGENERATOR = $('#__VIEWSTATEGENERATOR').val()
     let __EVENTVALIDATION = $('#__EVENTVALIDATION').val()
     response = await axios.post(`http://timetabling.anu.edu.au/sws${year}/`, querystring.stringify({
-        '__EVENTTARGET'       : 'LinkBtn_modules',
-        '__VIEWSTATE'         : __VIEWSTATE,
-        '__EVENTVALIDATION'   : __EVENTVALIDATION
+        '__EVENTTARGET': 'LinkBtn_modules',
+        '__EVENTARGUMENT': '',
+        '__VIEWSTATE': __VIEWSTATE,
+        '__VIEWSTATEGENERATOR': __VIEWSTATEGENERATOR,
+        '__EVENTVALIDATION': __EVENTVALIDATION,
+        'tLinkType': 'information'
     }))
     $ = cheerio.load(response.data)
     const courses = $('#dlObject option').map(function () { return $(this).val() }).get()
     __VIEWSTATE = $('#__VIEWSTATE').val()
+    __VIEWSTATEGENERATOR = $('#__VIEWSTATEGENERATOR').val()
     __EVENTVALIDATION = $('#__EVENTVALIDATION').val()
     console.log('Found ' + courses.length + ' courses')
 
@@ -30,8 +36,12 @@ async function scrape() {
     while (courses.length > 0) {
         console.log('Getting next 50 courses...')
         response = await axios.post(`http://timetabling.anu.edu.au/sws${year}/`, querystring.stringify({
-            '__VIEWSTATE'         : __VIEWSTATE,
-            '__EVENTVALIDATION'   : __EVENTVALIDATION,
+            '__EVENTTARGET'       : '',
+            '__EVENTARGUMENT'     : '',
+            '__VIEWSTATE': __VIEWSTATE,
+            '__VIEWSTATEGENERATOR': __VIEWSTATEGENERATOR,
+            '__EVENTVALIDATION': __EVENTVALIDATION,
+            'tLinkType': 'modules',
             'dlObject': courses.splice(0, 50),
             'lbWeeks': '1-52',
             'lbDays': '1-7;1;2;3;4;5;6;7',
@@ -41,14 +51,20 @@ async function scrape() {
         }), {headers: {cookie}})
         $ = cheerio.load(response.data)
         const tables = $('.cyon_table')
+        if (tables.length === 0) {
+            console.log(response.data)
+            process.exit(1)
+        }
         for (let i = 0; i < tables.length; i++) {
             const table = tables.eq(i)
-            const courseCode = table.prev().find('a').text()
-            data[courseCode] = []
+            const header = table.prev()
+            const title = header.find('h3').first().text()
+            data[title] = []
             const rows = table.find('tbody tr')
             for (let j = 0; j < rows.length; j++) {
                 let occurrences = []
                 const cells = rows.eq(j).find('td')
+                const name = cells.eq(0).children('a').first().text().trim()
                 const dates = cells.eq(5).children('div').text().split(', ')
                 const locationCell = cells.eq(7)
                 const locationLinks = locationCell.children('a')
@@ -77,9 +93,12 @@ async function scrape() {
                     const endDate = new Date(dateArray[dateArray.length - 1])
                     while (startDate <= endDate) {
                         occurrences.push({
-                            name: cells.eq(0).children('a').first().text().trim(),
+                            name,
+                            activityCode: name.slice(0, name.lastIndexOf('/')),
+                            courseCode: name.split('_')[0],
+                            courseTitle: title,
                             start: new Date(startDate.toDateString() + ' ' + cells.eq(2).text()).getTime(),
-                            end: new Date(endDate.toDateString() + ' ' + cells.eq(3).text()).getTime(),
+                            end: new Date(startDate.toDateString() + ' ' + cells.eq(3).text()).getTime(),
                             type: cells.eq(6).text(),
                             location: locationCell.html(),
                             notes: cells.eq(8).text()
@@ -87,11 +106,11 @@ async function scrape() {
                         startDate.setDate(startDate.getDate() + 7)
                     }
                 }
-                const matchingGroup = data[courseCode].find(group => group[0][0].name.slice(0, group[0][0].name.lastIndexOf('/')) === occurrences[0].name.slice(0, occurrences[0].name.lastIndexOf('/')))
+                const matchingGroup = data[title].find(group => group[0][0].activityCode === occurrences[0].activityCode)
                 if (matchingGroup) matchingGroup.push(occurrences)
-                else data[courseCode].push([occurrences])
+                else data[title].push([occurrences])
             }
-            console.log('Scraped ' + courseCode)
+            console.log('Scraped ' + title)
         }
     }
     return data
