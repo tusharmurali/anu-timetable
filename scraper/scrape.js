@@ -10,6 +10,7 @@ const year = 2022
 
 async function scrape() {
     let data = {}
+    let count = 0
     let response = await axios.get(`http://timetabling.anu.edu.au/sws${year}/`)
     let $ = cheerio.load(response.data)
     const cookie = response.headers['set-cookie'].join('; ')
@@ -93,6 +94,7 @@ async function scrape() {
                     const endDate = new Date(dateArray[dateArray.length - 1])
                     while (startDate <= endDate) {
                         occurrences.push({
+                            id: count++,
                             name,
                             activityCode: name.slice(0, name.lastIndexOf('/')),
                             courseCode: name.split('_')[0],

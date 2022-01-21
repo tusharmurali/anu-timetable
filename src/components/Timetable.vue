@@ -136,15 +136,23 @@
                   {{ formatAMPM(new Date(selectedEvent.start)) }} - {{ formatAMPM(new Date(selectedEvent.end)) }}<br v-if="selectedEvent.location">
                   <span v-html="selectedEvent.location"></span><br v-if="selectedEvent.notes">
                   {{ selectedEvent.notes }}
-                  <v-textarea v-model="notes[selectedEvent.id]" class="mt-4" label="Notes" hint="Click the icon to save" persistent-hint>
+                  <v-textarea
+                      v-model="notes[selectedEvent.id]"
+                      :hint="!isEditing ? 'Click the icon to edit' : 'Click the icon to save'"
+                      :readonly="!isEditing"
+                      class="mt-4"
+                      label="Notes"
+                      persistent-hint
+                  >
                     <template v-slot:append-outer>
-                      <v-btn icon @click="updateNotes()">
-                        <v-icon
-                            color="success"
-                        >
-                          mdi-check-outline
-                        </v-icon>
-                      </v-btn>
+                        <v-btn icon @click="isEditing = !isEditing; updateNotes()">
+                          <v-icon
+                              :color="isEditing ? 'success' : 'info'"
+                              v-text="isEditing ? 'mdi-check-outline' : 'mdi-circle-edit-outline'"
+                          >
+                            mdi-check-outline
+                          </v-icon>
+                        </v-btn>
                     </template>
                   </v-textarea>
                 </v-card-text>
@@ -247,11 +255,12 @@ p > a {
         day: 'Day'
       },
       selected: [],
-      notes: [],
+      notes: {},
       selectedEvent: {},
       selectedElement: null,
       selectedOpen: false,
       colors: ['blue lighten-1', 'indigo', 'deep-purple', 'cyan', 'green', 'orange', 'grey darken-1'],
+      isEditing: false,
       ready: false,
       update: false,
     }),
@@ -290,11 +299,10 @@ p > a {
 
     computed: {
       events () {
-        let index = 0
         let events = []
         this.activities.forEach(occurrence => {
           events.push({
-            id: index,
+            id: occurrence.id,
             name: occurrence.courseCode,
             activityName: occurrence.name,
             activityCode: occurrence.activityCode,
@@ -307,7 +315,6 @@ p > a {
             color: this.colors[this.values.indexOf(occurrence.courseTitle)],
             timed: true
           })
-          index++
         })
         return events
       },
