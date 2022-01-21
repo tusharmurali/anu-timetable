@@ -136,6 +136,17 @@
                   {{ formatAMPM(new Date(selectedEvent.start)) }} - {{ formatAMPM(new Date(selectedEvent.end)) }}<br v-if="selectedEvent.location">
                   <span v-html="selectedEvent.location"></span><br v-if="selectedEvent.notes">
                   {{ selectedEvent.notes }}
+                  <v-textarea v-model="notes[selectedEvent.id]" class="mt-4" label="Notes" hint="Click the icon to save" persistent-hint>
+                    <template v-slot:append-outer>
+                      <v-btn icon @click="updateNotes()">
+                        <v-icon
+                            color="success"
+                        >
+                          mdi-check-outline
+                        </v-icon>
+                      </v-btn>
+                    </template>
+                  </v-textarea>
                 </v-card-text>
                 <v-card-actions v-if="selectedEvent.name && timetable[selectedEvent.courseTitle].find(group => group[0][0].activityCode === selectedEvent.activityCode).length > 1 && !selected.includes(selectedEvent.activityName)">
                   <v-btn :color="selectedEvent.color" @click="selectActivity(selectedEvent.activityName)" text>Select</v-btn>
@@ -236,18 +247,23 @@ p > a {
         day: 'Day'
       },
       selected: [],
+      notes: [],
       selectedEvent: {},
       selectedElement: null,
       selectedOpen: false,
       colors: ['blue lighten-1', 'indigo', 'deep-purple', 'cyan', 'green', 'orange', 'grey darken-1'],
       ready: false,
-      update: false
+      update: false,
     }),
 
     mounted () {
       this.ready = true
       this.scrollToTime()
       this.updateTime()
+
+      if (localStorage.focus) {
+        this.focus = localStorage.focus
+      }
 
       if (localStorage.getItem('selected')) {
         try {
@@ -256,13 +272,29 @@ p > a {
           localStorage.removeItem('selected')
         }
       }
+
+      if (localStorage.getItem('notes')) {
+        try {
+          this.notes = JSON.parse(localStorage.getItem('notes'))
+        } catch (e) {
+          localStorage.removeItem('notes')
+        }
+      }
+    },
+
+    watch: {
+      focus(newFocus) {
+        localStorage.focus = newFocus
+      }
     },
 
     computed: {
       events () {
+        let index = 0
         let events = []
         this.activities.forEach(occurrence => {
           events.push({
+            id: index,
             name: occurrence.courseCode,
             activityName: occurrence.name,
             activityCode: occurrence.activityCode,
@@ -275,6 +307,7 @@ p > a {
             color: this.colors[this.values.indexOf(occurrence.courseTitle)],
             timed: true
           })
+          index++
         })
         return events
       },
@@ -361,6 +394,9 @@ p > a {
       deselectActivity (name) {
         this.selected.splice(this.selected.indexOf(name), 1)
         localStorage.setItem('selected', JSON.stringify(this.selected))
+      },
+      updateNotes() {
+        localStorage.setItem('notes', JSON.stringify(this.notes))
       },
       getCurrentTime () {
         return this.cal ? this.cal.times.now.hour * 60 + this.cal.times.now.minute : 0
