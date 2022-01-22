@@ -84,42 +84,38 @@ export default {
   }),
 
   mounted() {
-    if (this.$route.query.semester) {
-      this.select = this.$route.query.semester
+    if (this.$route.query.s) {
+      this.select = this.$route.query.s
     } else if (localStorage.select) {
       this.select = localStorage.select
-      this.$router.push({ query: { ...this.$route.query, semester: this.select } })
+      this.$router.push({ query: { ...this.$route.query, s: this.select } })
     } else {
       localStorage.select = this.select
-      this.$router.push({ query: { ...this.$route.query, semester: this.select } })
+      this.$router.push({ query: { ...this.$route.query, s: this.select } })
     }
 
-    if (this.$route.query.course) {
-      if (!Array.isArray(this.$route.query.course)) {
-        this.values = [Object.keys(timetable).find(key => key.startsWith(this.$route.query.course.toString()))]
-      } else {
-        this.values = this.$route.query.course.map(courseCode => Object.keys(timetable).find(key => key.startsWith(courseCode)))
-      }
+    if (this.$route.query.c) {
+      this.values = this.$route.query.c.split(',').map(c => Object.keys(timetable).find(key => key.startsWith(c)))
     } else if (localStorage.getItem('values')) {
       try {
         this.values = JSON.parse(localStorage.getItem('values'))
       } catch (e) {
         localStorage.removeItem('values')
       }
-      this.$router.push({ query: { ...this.$route.query, course: this.values.map(value => value.split('_')[0]) } }).catch(() => {})
+      this.$router.push({ query: { ...this.$route.query, c: this.values.map(value => value.split('_')[0]).join(',') } }).catch(() => {})
     } else {
       localStorage.setItem('values', JSON.stringify(this.values))
-      this.$router.push({ query: { ...this.$route.query, course: this.values.map(value => value.split('_')[0]) } }).catch(() => {})
+      this.$router.push({ query: { ...this.$route.query, c: this.values.map(value => value.split('_')[0]).join(',') } }).catch(() => {})
     }
 
     this.$watch('select', newSelect => {
       localStorage.select = newSelect
-      this.$router.push({query: {...this.$route.query, semester: newSelect}}).catch(() => {})
+      this.$router.push({ query: { ...this.$route.query, s: newSelect } }).catch(() => {})
       this.values = []
     })
     this.$watch('values', newValues => {
       localStorage.setItem('values', JSON.stringify(newValues))
-      this.$router.push({ query: { ...this.$route.query, course: newValues.map(value => value.split('_')[0]) } }).catch(() => {})
+      this.$router.push({ query: { ...this.$route.query, c: newValues.map(value => value.split('_')[0]).join(',') } }).catch(() => {})
     })
   },
 
@@ -136,7 +132,6 @@ export default {
     remove (item) {
       const index = this.values.indexOf(item.value)
       if (index >= 0) this.values.splice(index, 1)
-      // this.$refs.timetable.selected = this.$refs.timetable.selected.filter(activityName => !activityName.startsWith(item.value.split('_')[0]))
     }
   }
 };

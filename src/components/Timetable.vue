@@ -274,22 +274,18 @@ p > a {
         this.focus = localStorage.focus
       }
 
-      if (this.$route.query.selection) {
-        if (!Array.isArray(this.$route.query.selection)) {
-          this.selected = [this.$route.query.selection]
-        } else {
-          this.selected = this.$route.query.selection
-        }
+      if (this.$route.query.t) {
+        this.selected = this.$route.query.t.split(',')
       } else if (localStorage.getItem('selected')) {
         try {
           this.selected = JSON.parse(localStorage.getItem('selected'))
         } catch (e) {
           localStorage.removeItem('selected')
         }
-        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
+        this.$router.push({ query: { ...this.$route.query, t: this.selected.join(',') } }).catch(() => {})
       } else {
         localStorage.setItem('selected', this.selected)
-        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
+        this.$router.push({ query: { ...this.$route.query, t: this.selected.join(',') } }).catch(() => {})
       }
 
       if (localStorage.getItem('notes')) {
@@ -308,7 +304,7 @@ p > a {
       values(newValues) {
         this.selected = this.selected.filter(name => newValues.some(value => name.startsWith(value.split('_')[0])))
         localStorage.setItem('selected', JSON.stringify(this.selected))
-        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
+        this.$router.push({ query: { ...this.$route.query, t: this.selected.join(',') } }).catch(() => {})
       }
     },
 
@@ -412,12 +408,12 @@ p > a {
       selectActivity (name) {
         this.selected.push(name)
         localStorage.setItem('selected', JSON.stringify(this.selected))
-        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
+        this.$router.push({ query: { ...this.$route.query, t: this.selected.join(',') } }).catch(() => {})
       },
       deselectActivity (name) {
         this.selected.splice(this.selected.indexOf(name), 1)
         localStorage.setItem('selected', JSON.stringify(this.selected))
-        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
+        this.$router.push({ query: { ...this.$route.query, t: this.selected.join(',') } }).catch(() => {})
       },
       updateNotes() {
         localStorage.setItem('notes', JSON.stringify(this.notes))
