@@ -141,7 +141,7 @@
                       :hint="!isEditing ? 'Click the icon to edit' : 'Click the icon to save'"
                       :readonly="!isEditing"
                       class="mt-4"
-                      label="Notes"
+                      :label="`Notes — ${isEditing ? 'Editable' : 'Read-Only'}`"
                       persistent-hint
                   >
                     <template v-slot:append-outer>
@@ -274,12 +274,22 @@ p > a {
         this.focus = localStorage.focus
       }
 
-      if (localStorage.getItem('selected')) {
+      if (this.$route.query.selection) {
+        if (!Array.isArray(this.$route.query.selection)) {
+          this.selected = [this.$route.query.selection]
+        } else {
+          this.selected = this.$route.query.selection
+        }
+      } else if (localStorage.getItem('selected')) {
         try {
           this.selected = JSON.parse(localStorage.getItem('selected'))
         } catch (e) {
           localStorage.removeItem('selected')
         }
+        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
+      } else {
+        localStorage.setItem('selected', this.selected)
+        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
       }
 
       if (localStorage.getItem('notes')) {
@@ -294,6 +304,11 @@ p > a {
     watch: {
       focus(newFocus) {
         localStorage.focus = newFocus
+      },
+      values(newValues) {
+        this.selected = this.selected.filter(name => newValues.some(value => name.startsWith(value.split('_')[0])))
+        localStorage.setItem('selected', JSON.stringify(this.selected))
+        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
       }
     },
 
@@ -397,10 +412,12 @@ p > a {
       selectActivity (name) {
         this.selected.push(name)
         localStorage.setItem('selected', JSON.stringify(this.selected))
+        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
       },
       deselectActivity (name) {
         this.selected.splice(this.selected.indexOf(name), 1)
         localStorage.setItem('selected', JSON.stringify(this.selected))
+        this.$router.push({ query: { ...this.$route.query, selection: this.selected } }).catch(() => {})
       },
       updateNotes() {
         localStorage.setItem('notes', JSON.stringify(this.notes))

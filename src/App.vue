@@ -56,21 +56,16 @@
     </v-app-bar>
 
     <v-main>
-      <Timetable :values="values"/>
+      <router-view :values="values"/>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import Timetable from './components/Timetable';
 import timetable from '../scraper/timetable.json';
 
 export default {
   name: 'App',
-
-  components: {
-    Timetable
-  },
 
   data: () => ({
     timetable,
@@ -85,28 +80,47 @@ export default {
     ],
     select: new Date().getMonth() + 1 >= 6 && new Date().getMonth + 1 <= 10 ? 'S2' : 'S1',
     colors: ['blue lighten-1', 'indigo', 'deep-purple', 'cyan', 'green', 'orange', 'grey darken-1'],
+    initialized: false,
   }),
 
   mounted() {
-    if (localStorage.select) {
+    if (this.$route.query.semester) {
+      this.select = this.$route.query.semester
+    } else if (localStorage.select) {
       this.select = localStorage.select
+      this.$router.push({ query: { ...this.$route.query, semester: this.select } })
+    } else {
+      localStorage.select = this.select
+      this.$router.push({ query: { ...this.$route.query, semester: this.select } })
     }
-    if (localStorage.getItem('values')) {
+
+    if (this.$route.query.course) {
+      if (!Array.isArray(this.$route.query.course)) {
+        this.values = [Object.keys(timetable).find(key => key.startsWith(this.$route.query.course.toString()))]
+      } else {
+        this.values = this.$route.query.course.map(courseCode => Object.keys(timetable).find(key => key.startsWith(courseCode)))
+      }
+    } else if (localStorage.getItem('values')) {
       try {
         this.values = JSON.parse(localStorage.getItem('values'))
       } catch (e) {
         localStorage.removeItem('values')
       }
+      this.$router.push({ query: { ...this.$route.query, course: this.values.map(value => value.split('_')[0]) } }).catch(() => {})
+    } else {
+      localStorage.setItem('values', JSON.stringify(this.values))
+      this.$router.push({ query: { ...this.$route.query, course: this.values.map(value => value.split('_')[0]) } }).catch(() => {})
     }
-  },
 
-  watch: {
-    select(newSelect) {
+    this.$watch('select', newSelect => {
       localStorage.select = newSelect
-    },
-    values(newValues) {
-      localStorage.values = JSON.stringify(newValues)
-    }
+      this.$router.push({query: {...this.$route.query, semester: newSelect}}).catch(() => {})
+      this.values = []
+    })
+    this.$watch('values', newValues => {
+      localStorage.setItem('values', JSON.stringify(newValues))
+      this.$router.push({ query: { ...this.$route.query, course: newValues.map(value => value.split('_')[0]) } }).catch(() => {})
+    })
   },
 
   computed: {
@@ -122,6 +136,7 @@ export default {
     remove (item) {
       const index = this.values.indexOf(item.value)
       if (index >= 0) this.values.splice(index, 1)
+      // this.$refs.timetable.selected = this.$refs.timetable.selected.filter(activityName => !activityName.startsWith(item.value.split('_')[0]))
     }
   }
 };
