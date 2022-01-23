@@ -1,8 +1,12 @@
 # anu-timetable
 A web app that tells you when your next ANU lecture or tutorial is.
-All times are automatically shown in the timezone of your device.
-The timetable supports selecting tutorials, workshops, and labs, and has clickable Google Maps links for directions to each location displayed.
+All times are shown in the timezone of your device, and links can be shared at will.
+The timetable supports selecting tutorials, workshops, and labs.
+It also Google Maps links for directions to each location displayed.
+Notes can be stored for each activity by clicking on the event in the calendar.
 Each upcoming activity is displayed below the calendar along with the time until its start.
+
+Check it out [here](https://tusharmurali.github.io/anu-timetable/).
 
 ## Project setup
 ```
