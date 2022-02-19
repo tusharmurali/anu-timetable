@@ -137,7 +137,7 @@
                   <span v-html="selectedEvent.location"></span><br v-if="selectedEvent.notes">
                   {{ selectedEvent.notes }}
                   <v-textarea
-                      v-model="notes[selectedEvent.id]"
+                      v-model="selectedEventNote"
                       :hint="!isEditing ? 'Click the icon to edit' : 'Click the icon to save'"
                       :readonly="!isEditing"
                       class="mt-4"
@@ -145,7 +145,7 @@
                       persistent-hint
                   >
                     <template v-slot:append-outer>
-                        <v-btn icon @click="isEditing = !isEditing; updateNotes()">
+                        <v-btn icon @click="isEditing = !isEditing; updateNotes(selectedEvent.id, selectedEventNote)">
                           <v-icon
                               :color="isEditing ? 'success' : 'info'"
                               v-text="isEditing ? 'mdi-check-outline' : 'mdi-circle-edit-outline'"
@@ -170,7 +170,38 @@
 
       <v-col xl="6" md="4" v-for="(activity, index) in activities.filter(a => new Date() <= new Date(a.end))" :key="index">
         <v-card dark class="d-flex flex-column mb-4" height="100%" :color="color = colors[values.indexOf(activity.courseTitle)]">
-          <v-card-text class="d-flex flex-column text-center">
+          <v-menu :close-on-content-click="false" offset-x>
+            <template v-slot:activator="{ on }">
+              <v-btn icon class="align-self-end" v-on="on" @click="selectedEventNote = notes[activity.id]"><v-icon v-text="!!notes[activity.id] ? 'mdi-file-document-edit-outline' : 'mdi-note-edit-outline'"></v-icon></v-btn>
+            </template>
+            <v-card
+                color="grey lighten-4"
+                min-width="350px"
+                flat
+            >
+              <v-card-text>
+                <v-textarea
+                    v-model="selectedEventNote"
+                    :hint="!isEditing ? 'Click the icon to edit' : 'Click the icon to save'"
+                    :readonly="!isEditing"
+                    :label="`Notes — ${isEditing ? 'Editable' : 'Read-Only'}`"
+                    persistent-hint
+                >
+                  <template v-slot:append-outer>
+                    <v-btn icon @click="isEditing = !isEditing; updateNotes(activity.id, selectedEventNote)">
+                      <v-icon
+                          :color="isEditing ? 'success' : 'info'"
+                          v-text="isEditing ? 'mdi-check-outline' : 'mdi-circle-edit-outline'"
+                      >
+                        mdi-check-outline
+                      </v-icon>
+                    </v-btn>
+                  </template>
+                </v-textarea>
+              </v-card-text>
+            </v-card>
+          </v-menu>
+          <v-card-text class="d-flex flex-column text-center pt-0">
             <p class="text-h4 white--text">
               {{ activity.courseCode }}<br>
               <span class="text-h6">{{ activity.type }}</span>
@@ -259,6 +290,7 @@ p > a {
       selectedEvent: {},
       selectedElement: null,
       selectedOpen: false,
+      selectedEventNote: '',
       colors: ['blue lighten-1', 'indigo', 'deep-purple', 'cyan', 'green', 'orange', 'grey darken-1'],
       isEditing: false,
       ready: false,
@@ -392,6 +424,7 @@ p > a {
         this.type = 'day'
       },
       showEvent ({ nativeEvent, event }) {
+        this.selectedEventNote = this.notes[event.id]
         const open = () => {
           this.selectedEvent = event
           this.selectedElement = nativeEvent.target
@@ -415,8 +448,11 @@ p > a {
         localStorage.setItem('selected', JSON.stringify(this.selected))
         this.$router.push({ query: { ...this.$route.query, t: this.selected.join(',') } }).catch(() => {})
       },
-      updateNotes() {
-        localStorage.setItem('notes', JSON.stringify(this.notes))
+      updateNotes(id, note) {
+        if (!this.isEditing) {
+          this.notes[id] = note
+          localStorage.setItem('notes', JSON.stringify(this.notes))
+        }
       },
       getCurrentTime () {
         return this.cal ? this.cal.times.now.hour * 60 + this.cal.times.now.minute : 0
